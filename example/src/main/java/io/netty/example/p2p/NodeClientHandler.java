@@ -6,16 +6,23 @@ import io.netty.channel.ChannelInboundHandlerAdapter;
 import io.netty.channel.SimpleChannelInboundHandler;
 import io.netty.util.ReferenceCountUtil;
 
-public class NodeClientHandler extends SimpleChannelInboundHandler<Object> {
+import java.nio.charset.Charset;
+
+public class NodeClientHandler extends ChannelInboundHandlerAdapter {
 
     @Override
-    public void channelRead0(ChannelHandlerContext ctx, Object msg) throws Exception {
-        // Print as received
-        System.out.println(msg);
+    public void channelRead(ChannelHandlerContext ctx, Object msg) {
+        System.out.println("Client recieved"+ ((ByteBuf)msg).toString(Charset.defaultCharset()));
+    }
+
+    @Override
+    public void channelReadComplete(ChannelHandlerContext ctx) {
+        ctx.flush();
     }
 
     @Override
     public void exceptionCaught(ChannelHandlerContext ctx, Throwable cause) {
+        // Close the connection when an exception is raised.
         cause.printStackTrace();
         ctx.close();
     }
