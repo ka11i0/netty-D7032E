@@ -27,11 +27,22 @@ public class Node {
     public static void main(String[] args) throws Exception{
         Node me = new Node(1, "127.0.0.1", 8007);
         Node carl = new Node(2, "127.0.0.1", 8008);
-        //Node zero = new Node(3, "127.0.0.1", 8007);
+        Node zero = new Node(3, "127.0.0.1", 8009);
 
         me.addNode(carl);
-        //me.addNode(zero);
-        me.run();
+        me.addNode(zero);
+
+        carl.addNode(me);
+        carl.addNode(zero);
+
+        zero.addNode(me);
+        zero.addNode(carl);
+
+        me.startServer();
+        carl.startServer();
+        zero.startServer();
+
+        me.startClient();
     }
 
     private final int id;
@@ -78,11 +89,9 @@ public class Node {
         status = s;
     }
 
-    public void run() throws InterruptedException {
+    public void startServer() throws InterruptedException {
         EventLoopGroup servergroup = new NioEventLoopGroup();
-        EventLoopGroup clientgroup = new NioEventLoopGroup();
         try {
-            // Server part
             server.group(servergroup)
                     .channel(NioServerSocketChannel.class)
                     .childHandler(new ChannelInitializer<SocketChannel>() {
@@ -92,7 +101,17 @@ public class Node {
                         }
                     });
 
-            // Client part
+            // Start the server.
+            ChannelFuture f = server.bind(port).sync();
+            System.out.println("Node "+id+" started");
+        } finally {
+           // servergroup.shutdownGracefully().sync();
+        }
+    }
+
+    public void startClient() throws InterruptedException {
+        EventLoopGroup clientgroup = new NioEventLoopGroup();
+        try {
             client.group(clientgroup);
             client.channel(NioSocketChannel.class);
             client.handler(new ChannelInitializer<SocketChannel>() {
@@ -102,8 +121,6 @@ public class Node {
                 }
             });
 
-            // Start the server.
-            ChannelFuture f = server.bind(port).sync();
 
             // Start the client and connect to all other nodes
 
@@ -119,12 +136,9 @@ public class Node {
                     ch.writeAndFlush(msgBuffer);
                 }
             }
-        } catch (InterruptedException e) {
-            e.printStackTrace();
         } finally {
             // Shut down all event loops to terminate all threads.
-            servergroup.shutdownGracefully().sync();
-            clientgroup.shutdownGracefully().sync();
+            //clientgroup.shutdownGracefully().sync();
         }
 
     }
