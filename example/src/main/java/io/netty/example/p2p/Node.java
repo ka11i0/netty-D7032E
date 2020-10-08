@@ -26,7 +26,7 @@ public class Node {
 
     public static void main(String[] args) throws Exception{
         Node me = new Node(1, "127.0.0.1", 8007);
-        Node carl = new Node(2, "127.0.0.1", 8007);
+        Node carl = new Node(2, "127.0.0.1", 8008);
         //Node zero = new Node(3, "127.0.0.1", 8007);
 
         me.addNode(carl);
