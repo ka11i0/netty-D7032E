@@ -25,27 +25,19 @@ import java.util.Scanner;
 public class Node {
 
     public static void main(String[] args) throws Exception{
-        Node me = new Node(1, "127.0.0.1", 8007);
-        Node carl = new Node(2, "127.0.0.1", 8008);
-        Node zero = new Node(3, "127.0.0.1", 8009);
+        Node me = new Node("me", "127.0.0.1", 8007);
+        Node otoo = new Node("otoo", "127.0.0.1", 8008);
 
-        me.addNode(carl);
-        me.addNode(zero);
+        //me.addNode(otoo);
+        //otoo.addNode(me);
+        otoo.startServer();
 
-        carl.addNode(me);
-        carl.addNode(zero);
+        me.run();
 
-        zero.addNode(me);
-        zero.addNode(carl);
-
-        me.startServer();
-        carl.startServer();
-        zero.startServer();
-
-        me.startClient();
+        //otoo.startClient();
     }
 
-    private final int id;
+    private final String id;
     private final String ip;
     private final int port;
     private String status;
@@ -54,7 +46,7 @@ public class Node {
     private Bootstrap client;
 
 
-    public Node(int id, String ip, int port) {
+    public Node(String id, String ip, int port) {
         this.id = id;
         this.ip = ip;
         this.port = port;
@@ -72,7 +64,10 @@ public class Node {
         nodes[othernodes.length] = n;
         othernodes = nodes;
     }
-
+    public void run() throws InterruptedException {
+        startServer();
+        startClient();
+    }
     // Connect to all the nodes in the connections collection
     private Channel[] connectToAll() throws InterruptedException {
         Channel[] channels = new Channel[othernodes.length];
@@ -84,6 +79,16 @@ public class Node {
         }
         return channels;
     }
+    private Channel connect(String alias) throws InterruptedException {
+        int i = 0;
+        for(Node node: othernodes) {
+            if (node.id.equals(alias)) {
+                break;
+            }
+            i++;
+        }
+        return client.connect(othernodes[i].ip, othernodes[i].port).sync().channel();
+    }
 
     public void changeStatus(String s) {
         status = s;
@@ -93,19 +98,41 @@ public class Node {
         EventLoopGroup servergroup = new NioEventLoopGroup();
         try {
             server.group(servergroup)
-                    .channel(NioServerSocketChannel.class)
-                    .childHandler(new ChannelInitializer<SocketChannel>() {
-                        @Override
-                        protected void initChannel(SocketChannel socketChannel) throws Exception {
-                            socketChannel.pipeline().addLast(new NodeServerHandler());
-                        }
-                    });
+                  .channel(NioServerSocketChannel.class)
+                  .childHandler(new ChannelInitializer<SocketChannel>() {
+                      @Override
+                      protected void initChannel(SocketChannel socketChannel) throws Exception {
+                          socketChannel.pipeline().addLast(new NodeServerHandler());
+                      }
+                  });
 
             // Start the server.
             ChannelFuture f = server.bind(port).sync();
             System.out.println("Node "+id+" started");
         } finally {
            // servergroup.shutdownGracefully().sync();
+        }
+    }
+
+    public void handleInput(String[] input) throws InterruptedException {
+        //input syntax: send "msg" to "index"
+        if (input[0].equals("send")) {
+            Channel ch = connect(input[3]);
+            ByteBuf msgBuffer = Unpooled.wrappedBuffer(input[1].getBytes(CharsetUtil.UTF_8));
+            ch.writeAndFlush(msgBuffer);
+            ch.closeFuture();
+        }
+        //input add_node: add_node "id" "ip" "port"
+        else if (input[0].equals("add_node")) {
+            Node n = new Node(input[1], input[2], Integer.parseInt(input[3]));
+            addNode(n);
+        }
+        else if (input[0].equals("help")) {
+            System.out.println("To add another node use: add_node \"id\" \"ip\" \"port\"");
+            System.out.println("To send a message: send \"msg\" to \"index\"");
+        }
+        else {
+            System.out.println("Not a command, try help for commands and syntax");
         }
     }
 
@@ -120,25 +147,15 @@ public class Node {
                     socketChannel.pipeline().addLast(new NodeClientHandler());
                 }
             });
-
-
-            // Start the client and connect to all other nodes
-
-            Channel[] connections = connectToAll();
-
-            System.out.println("Enter msg to send to othern nodes");
             Scanner scanner = new Scanner(System.in);
             while (scanner.hasNextLine()) {
                 String msg = scanner.nextLine();
-                System.out.println("Input from node "+ id + ":"+msg);
-                for(Channel ch: connections) {
-                    ByteBuf msgBuffer = Unpooled.wrappedBuffer(msg.getBytes(CharsetUtil.UTF_8));
-                    ch.writeAndFlush(msgBuffer);
-                }
+                String[] commands = msg.split("\\s+");
+                handleInput(commands);
             }
         } finally {
             // Shut down all event loops to terminate all threads.
-            //clientgroup.shutdownGracefully().sync();
+            clientgroup.shutdownGracefully().sync();
         }
 
     }

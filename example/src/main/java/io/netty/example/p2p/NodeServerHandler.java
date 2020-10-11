@@ -17,18 +17,19 @@ public class NodeServerHandler extends ChannelInboundHandlerAdapter {
     @Override
     public void channelRead(ChannelHandlerContext ctx, Object msg) throws Exception {
         //System.out.println("server received:" + msg);
-        System.out.println("server received msg:" +ctx.name()+ ((ByteBuf)msg).toString(Charset.defaultCharset()));
+        String m = ((ByteBuf)msg).toString(Charset.defaultCharset());
+        System.out.println("server received msg: " + m);
         ctx.writeAndFlush(msg);
     }
 
     @Override
     public void channelActive(ChannelHandlerContext ctx) throws Exception {
-        System.out.println("connection active:" + ctx);
+        //System.out.println("connection active:" + ctx);
     }
 
     @Override
     public void channelInactive(ChannelHandlerContext ctx) throws Exception {
-        System.out.println("connection inactive:" + ctx);
+        //System.out.println("connection inactive:" + ctx);
     }
 
     @Override
