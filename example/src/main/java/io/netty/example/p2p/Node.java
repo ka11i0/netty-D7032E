@@ -149,9 +149,15 @@ public class Node {
             });
             Scanner scanner = new Scanner(System.in);
             while (scanner.hasNextLine()) {
-                String msg = scanner.nextLine();
-                String[] commands = msg.split("\\s+");
-                handleInput(commands);
+                try {
+                    String msg = scanner.nextLine();
+                    String[] commands = msg.split("\\s+");
+                    handleInput(commands);
+                } catch(Exception e){
+                    System.out.println("fel input noob");
+                    continue;
+
+                }
             }
         } finally {
             // Shut down all event loops to terminate all threads.
