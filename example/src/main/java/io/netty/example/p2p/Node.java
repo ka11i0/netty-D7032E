@@ -25,14 +25,15 @@ import java.util.Scanner;
 public class Node {
 
     public static void main(String[] args) throws Exception{
-        Node me = new Node("me", "127.0.0.1", 8007);
+        Node me = new Node("me", "192.168.10.192", 8007);
+        Node otoo = new Node("otoo", "192.168.10.160", 8007);
+        Node zero = new Node("zero", "192.168.10.141", 8007);
 
-        //me.addNode(otoo);
-        //otoo.addNode(me);
+
+        me.addNode(otoo);
+        me.addNode(zero);
 
         me.run();
-
-        //otoo.startClient();
     }
 
     private final String id;
@@ -126,6 +127,12 @@ public class Node {
         else if (input[0].equals("add_node")) {
             Node n = new Node(input[1], input[2], Integer.parseInt(input[3]));
             addNode(n);
+        }
+        else if (input[0].equals("nodes")) {
+            System.out.println("Added nodes:");
+            for (Node node: othernodes) {
+                System.out.println("Alias: " + node.id + ", Ip: " + node.ip + ", Port: " + node.port);
+            }
         }
         else if (input[0].equals("help")) {
             System.out.println("To add another node use: add_node \"id\" \"ip\" \"port\"");
