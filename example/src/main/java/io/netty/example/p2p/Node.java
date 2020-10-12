@@ -26,11 +26,9 @@ public class Node {
 
     public static void main(String[] args) throws Exception{
         Node me = new Node("me", "127.0.0.1", 8007);
-        Node otoo = new Node("otoo", "127.0.0.1", 8008);
 
         //me.addNode(otoo);
         //otoo.addNode(me);
-        otoo.startServer();
 
         me.run();
 
@@ -43,7 +41,9 @@ public class Node {
     private String status;
     private Node[] othernodes;
     private ServerBootstrap server;
+    private EventLoopGroup server_group;
     private Bootstrap client;
+    private EventLoopGroup client_group;
 
 
     public Node(String id, String ip, int port) {
@@ -95,9 +95,9 @@ public class Node {
     }
 
     public void startServer() throws InterruptedException {
-        EventLoopGroup servergroup = new NioEventLoopGroup();
+        server_group = new NioEventLoopGroup();
         try {
-            server.group(servergroup)
+            server.group(server_group)
                   .channel(NioServerSocketChannel.class)
                   .childHandler(new ChannelInitializer<SocketChannel>() {
                       @Override
@@ -130,6 +130,7 @@ public class Node {
         else if (input[0].equals("help")) {
             System.out.println("To add another node use: add_node \"id\" \"ip\" \"port\"");
             System.out.println("To send a message: send \"msg\" to \"index\"");
+            System.out.println("To close server and client: quit");
         }
         else {
             System.out.println("Not a command, try help for commands and syntax");
@@ -137,9 +138,9 @@ public class Node {
     }
 
     public void startClient() throws InterruptedException {
-        EventLoopGroup clientgroup = new NioEventLoopGroup();
+        client_group = new NioEventLoopGroup();
         try {
-            client.group(clientgroup);
+            client.group(client_group);
             client.channel(NioSocketChannel.class);
             client.handler(new ChannelInitializer<SocketChannel>() {
                 @Override
@@ -152,16 +153,21 @@ public class Node {
                 try {
                     String msg = scanner.nextLine();
                     String[] commands = msg.split("\\s+");
+                    if (commands[0].equals("quit")) {
+                        System.out.println("Closing server and client...");
+                        break;
+                    }
                     handleInput(commands);
                 } catch(Exception e){
-                    System.out.println("fel input noob");
+                    System.out.println("Syntax error");
                     continue;
 
                 }
             }
         } finally {
-            // Shut down all event loops to terminate all threads.
-            clientgroup.shutdownGracefully().sync();
+            server_group.shutdownGracefully().sync();
+            client_group.shutdownGracefully().sync();
+            System.out.println("Server and client closed");
         }
 
     }
